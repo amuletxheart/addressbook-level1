@@ -14,14 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 /*
  * NOTE : =============================================================
@@ -66,6 +59,7 @@ public class AddressBook {
      * =========================================================================
      */
     private static final String MESSAGE_ADDED = "New person added: %1$s, Phone: %2$s, Email: %3$s";
+    private static final String MESSAGE_UPDATED = "Existing person updated: %1$s, Phone: %2$s, Email: %3$s";
     private static final String MESSAGE_ADDRESSBOOK_CLEARED = "Address book has been cleared!";
     private static final String MESSAGE_COMMAND_HELP = "%1$s: %2$s";
     private static final String MESSAGE_COMMAND_HELP_PARAMETERS = "\tParameters: %1$s";
@@ -104,6 +98,12 @@ public class AddressBook {
                                                       + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
                                                       + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
     private static final String COMMAND_ADD_EXAMPLE = COMMAND_ADD_WORD + " John Doe p/98765432 e/johnd@gmail.com";
+
+    private static final String COMMAND_UPDATE_WORD = "update";
+    private static final String COMMAND_UPDATE_DESC = "Update the info of an existing person";
+    private static final String COMMAND_UPDATE_PARMETERS = "NAME"
+                                                      + PERSON_DATA_PREFIX_PHONE + "PHONE_NUMBER "
+                                                      + PERSON_DATA_PREFIX_EMAIL + "EMAIL";
 
     private static final String COMMAND_FIND_WORD = "find";
     private static final String COMMAND_FIND_DESC = "Finds all persons whose names contain any of the specified "
@@ -371,6 +371,8 @@ public class AddressBook {
         switch (commandType) {
         case COMMAND_ADD_WORD:
             return executeAddPerson(commandArgs);
+        case COMMAND_UPDATE_WORD:
+            return executeUpdatePerson(commandArgs);
         case COMMAND_FIND_WORD:
             return executeFindPersons(commandArgs);
         case COMMAND_LIST_WORD:
@@ -431,6 +433,28 @@ public class AddressBook {
     }
 
     /**
+     * Update the existing particulars of a person (specified by the command args) to the address book.
+     * The entire command arguments string is treated as a string representation of the person to update.
+     *
+     * @param commandArgs full command args string from the user
+     * @return feedback display message for the operation result
+     */
+    public static String executeUpdatePerson(String commandArgs){
+        // try decoding a person from the raw args
+        final Optional<String[]> decodeResult = decodePersonFromString(commandArgs);
+
+        // checks if args are valid (decode result will not be present if the person is invalid)
+        if (!decodeResult.isPresent()) {
+            return getMessageForInvalidCommandInput(COMMAND_ADD_WORD, getUsageInfoForAddCommand());
+        }
+
+        // update the person as specified
+        final String[] personToUpdate = decodeResult.get();
+        updatePersonInAddressBook(personToUpdate);
+        return getMessageForSuccessfulUpdatePerson(personToUpdate);
+    }
+
+    /**
      * Constructs a feedback message for a successful add person command execution.
      *
      * @see #executeAddPerson(String)
@@ -439,6 +463,18 @@ public class AddressBook {
      */
     private static String getMessageForSuccessfulAddPerson(String[] addedPerson) {
         return String.format(MESSAGE_ADDED,
+                getNameFromPerson(addedPerson), getPhoneFromPerson(addedPerson), getEmailFromPerson(addedPerson));
+    }
+
+    /**
+     * Constructs a feedback message for a successful update person command execution.
+     *
+     * @see #executeUpdatePerson(String)
+     * @param addedPerson person who was successfully added
+     * @return successful add person feedback message
+     */
+    private static String getMessageForSuccessfulUpdatePerson(String[] addedPerson) {
+        return String.format(MESSAGE_UPDATED,
                 getNameFromPerson(addedPerson), getPhoneFromPerson(addedPerson), getEmailFromPerson(addedPerson));
     }
 
@@ -784,6 +820,35 @@ public class AddressBook {
      */
     private static void addPersonToAddressBook(String[] person) {
         ALL_PERSONS.add(person);
+        savePersonsToFile(getAllPersonsInAddressBook(), storageFilePath);
+    }
+
+    /**
+     * Updates an existing person in the address book. Saves changes to storage file.
+     *
+     * @param person to update
+     */
+    private static void updatePersonInAddressBook(String[] person) {
+        String[] foundPerson = null;
+        Optional<String[]> foundPersonOpt = Optional.of(foundPerson);
+        Integer indexToUpdate = null;
+        Optional<Integer> indexToUpdateOpt = Optional.of(indexToUpdate);
+
+        for(int i = 0; i < getAllPersonsInAddressBook().size(); i++){
+            String[] eachPerson = getAllPersonsInAddressBook().get(i);
+
+            if (eachPerson[PERSON_DATA_INDEX_NAME].equals(person[PERSON_DATA_INDEX_NAME])){
+                foundPersonOpt = Optional.of(foundPerson);
+                indexToUpdate = i;
+                indexToUpdateOpt = Optional.of(indexToUpdate);
+            }
+        }
+
+        indexToUpdateOpt.ifPresent(index -> {
+            //getAllPersonsInAddressBook().set(index, );
+        });
+
+            ALL_PERSONS.add(person);
         savePersonsToFile(getAllPersonsInAddressBook(), storageFilePath);
     }
 
